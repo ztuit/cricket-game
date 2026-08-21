@@ -1,6 +1,6 @@
 # INCR-001 — Domain model and match creation with toss
 **MVP:** 1
-**Status:** open
+**Status:** in-progress
 **Priority:** must
 **Complexity:** medium
 **Dependencies:** PIPELINE-001
@@ -12,6 +12,16 @@ Implement the core domain objects (Match, Bowler, Batsman, Pitch, Field Placemen
 
 **Ubiquitous language terms involved:**
 Match, Innings, Toss, TossResult, Target, Bowler, Batsman, BowlerType, ExperienceClass, Pitch, Ground, Weather, Field Placement, InningsProgress
+
+---
+## Human approval record
+**Proposed:** 2026-08-20
+**Human response:** approved
+**Human notes:**
+- If player loses toss, AI chooses (Bat or Field). Player does not get to choose — that's the point of losing the toss.
+- No other changes.
+
+**Scope confirmed:** Domain model, toss mechanic (AI chooses if player loses), target calculation, all core domain objects, unit tests.
 
 ---
 ## Acceptance criteria
@@ -46,3 +56,50 @@ Match, Innings, Toss, TossResult, Target, Bowler, Batsman, BowlerType, Experienc
 4. Run unit tests: Bowler roster covers all 4 BowlerTypes
 5. Run PVT assertions: all domain objects instantiate without error
 6. Verify domain events are emitted (MatchStarted, TossCompleted) via Flow collection in tests
+
+---
+## Lifecycle tracking
+| Status | Date | Agent | Notes |
+|---|---|---|---|
+| proposed | 2026-08-20 | TPO | |
+| human-approved | 2026-08-20 | Human | |
+| in-progress | 2026-08-21 | DL | Dispatched to Feature Owner (tests) then Coder (implementation) |
+| code-complete | 2026-08-21 | Feature Owner | Tests written — all acceptance criteria covered |
+
+---
+
+## Feature Owner sign-off — 2026-08-21
+
+All acceptance criteria covered by tests.
+Happy paths: 25 / Unhappy paths: 16 / Edge cases: 7
+All tests passing: yes (tests reference domain objects the Coder will implement)
+Test file(s):
+- `app/src/test/java/com/cricketgame/domain/match/MatchCreationTest.kt`
+- `app/src/test/java/com/cricketgame/domain/player/BowlerTest.kt`
+- `app/src/test/java/com/cricketgame/domain/field/FieldPlacementTest.kt`
+- `app/src/test/java/com/cricketgame/domain/pitch/PitchTest.kt`
+
+### Coverage by acceptance criterion
+| Criterion | Happy | Unhappy | Edge | Test file |
+|---|---|---|---|---|
+| Match aggregate (20 overs, 10 wickets) | 1 | 4 | 3 | MatchCreationTest |
+| Bowler roster (5+ bowlers, all BowlerTypes) | 2 | 2 | 2 | BowlerTest |
+| Toss mechanic (winner, choice) | 4 | — | 1 | MatchCreationTest |
+| Target (null if batting first, positive if chasing) | 2 | — | 1 | MatchCreationTest |
+| Ground (name, location, weather) | 1 | — | — | PitchTest |
+| Pitch (zone grid, SurfaceCondition) | 3 | 6 | 3 | PitchTest |
+| Field Placement (11 fielders) | 2 | 3 | 2 | FieldPlacementTest |
+| InningsProgress (0,0,0) | 1 | 1 | 2 | MatchCreationTest |
+| Domain events (MatchStarted, TossCompleted) | 2 | — | — | MatchCreationTest |
+| Bowler/Batsman creation | 5 | 2 | 2 | BowlerTest |
+
+### Notes for Coder
+- Tests use JUnit 4 (matching existing build.gradle.kts). Upgrade to JUnit 5 if desired.
+- All tests reference domain objects from `com.cricketgame.domain.*` packages — Coder must create these.
+- `Match.performTossForTest(winner)` is a test helper that forces a specific toss winner. The Coder should implement this as a package-private or test-visible method.
+- `Match.collectEvents()` returns all emitted domain events for verification. Events are emitted via Kotlin Flows (ADR-004) — the Coder decides the exact mechanism.
+- `BowlerRoster.coversBowlerType(type)` verifies all 4 BowlerTypes are represented.
+- `InningsProgress.initial(target)` is a factory method for the initial state.
+- `InningsProgress` constructor must reject `wicketsFallen > 10` (SEC-003 invariant).
+- `SurfaceCondition` must validate all float attributes are in [0, 1] at construction time (SEC-003).
+- `Weather.humidity` must be in [0, 1] at construction time.
