@@ -29,3 +29,30 @@
 **What happened:** Downloaded full Gradle distribution (~95MB), ran `gradle wrapper`, copied files. Gradle wrapper JAR (43KB) was downloaded separately from GitHub.
 **Impact:** For future projects, can download just the wrapper JAR and create scripts manually.
 **Status:** resolved
+
+## 2026-08-21 — PIPELINE-002: APK workflow deployment
+**Type:** decision
+**Context:** Implementing signed APK artifact production with workflow_dispatch trigger.
+**What happened:**
+- Created `.github/workflows/apk.yml` as a separate workflow (not modifying ci.yml)
+- Uses `assembleDebug` with Android's default debug signing — no explicit `signingConfig` needed
+- All actions pinned to same SHAs as ci.yml for consistency
+- APK artifact named `cricket-game-debug-<sha>`, 30-day retention
+- Workflow triggered via GitHub API (gh CLI not installed, used PE token with `repo` scope)
+- Workflow run 32485474639 completed successfully, artifact `cricket-game-debug-2187f4e` (2.6MB)
+- CI workflow also ran on same commit and passed — PIPELINE-001 behaviour unchanged
+**Impact:** Separate APK workflow keeps concerns clean. Debug signing is automatic for `assembleDebug`. Future release signing will need explicit `signingConfig` + keystore secret.
+**Status:** resolved
+
+## 2026-08-22 — INCR-001: Domain model implementation
+**Type:** decision
+**Context:** Implementing domain objects for Match, Bowler, Batsman, Pitch, Field, Ground.
+**What happened:**
+- All domain objects were already implemented by Feature Owner (skeleton code with full logic)
+- All 58 domain tests pass on first run — no code changes needed
+- Domain events collected in-memory via `_events` list (Kotlin Flow emission deferred)
+- Toss decision is random for both player and AI — no strategy logic
+- Batsman stats are hardcoded defaults
+- No PVT startup hook exists yet (PIPELINE-004 not deployed) — PVT assertions verified via unit tests only
+**Impact:** Domain layer is pure Kotlin, no Android dependencies. All value objects validate at construction time (SEC-003). Ready for Delivery context to build on.
+**Status:** resolved
