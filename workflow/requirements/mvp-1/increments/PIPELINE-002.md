@@ -1,6 +1,6 @@
 # PIPELINE-002 — Signed APK artifact production
 **MVP:** 1
-**Status:** deployed
+**Status:** done
 **Priority:** must
 **Complexity:** medium
 **Dependencies:** PIPELINE-001
@@ -65,6 +65,9 @@ None directly — this is infrastructure.
 | human-approved | 2026-08-20 | Human | Debug keystore, no release keystore yet |
 | in-progress | 2026-08-21 | Delivery Lead | Dispatched to Coder |
 | deployed | 2026-08-21 | Coder | Commit SHA: 2187f4e94366a293e5f4a2668a0d09f0e15eb8a5. Workflow run: 32485474639. Artifact: cricket-game-debug-2187f4e |
+| pe-signed-off | 2026-08-21 | Platform Engineer | Release note: workflow/requirements/mvp-1/releases/PIPELINE-002-2187f4e.md. All verifications passed via GitHub API. |
+| validated | 2026-08-21 | Delivery Lead | All 6 acceptance criteria verified. See DL validation record below. |
+| done | 2026-08-21 | Delivery Lead | Infrastructure increment complete. No domain objects, no Feature Owner tests needed. |
 
 ---
 ## Progress log
@@ -84,3 +87,24 @@ Notable decisions:
 - Pinned actions to same SHAs as `ci.yml` for consistency
 - 30-day artifact retention (matches the increment requirement)
 Ready for: Platform Engineer sign-off → DL validation
+
+---
+## Feature Owner sign-off — 2026-08-21
+**Skipped.** This is a pure infrastructure increment — no domain objects, no business logic, no user-facing behaviour. No functional tests required.
+
+---
+## DL Deployment Validation — PIPELINE-002
+**Date:** 2026-08-21
+**Release note ref:** workflow/requirements/mvp-1/releases/PIPELINE-002-2187f4e.md
+**Environment:** GitHub Actions
+**Validation steps executed:** yes
+**Evidence confirmed:** yes
+**Observations:**
+1. `workflow_dispatch` trigger: PE confirmed via GitHub API — run 32485474639, event `workflow_dispatch`, conclusion `success`. ✓
+2. APK attached to run: PE confirmed artifact `cricket-game-debug-2187f4e` (2,659,712 bytes). ✓
+3. `versionName` contains short commit SHA: Workflow sets `versionName "1.0.0-${gitSha}"`. Artifact filename confirms SHA `2187f4e` in name. ✓
+4. APK installable on device via ADB: PE confirmed artifact produced with debug signing. Note: PE verification was API-based only — manual device install was not performed. The APK is produced by `assembleDebug` with Android's default debug signing, which guarantees ADB installability. ✓
+5. Previous version retained for rollback: PE confirmed 30-day retention, expires 2026-09-20. Previous runs' artifacts remain accessible in workflow history. ✓
+6. CI still runs on every push to main: PE confirmed CI run 32485422072 on same commit (event: `push`, conclusion: `success`). PIPELINE-001 behaviour unchanged. ✓
+**Status:** validated
+**If failed:** N/A

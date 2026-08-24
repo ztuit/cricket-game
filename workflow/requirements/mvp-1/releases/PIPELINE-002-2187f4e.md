@@ -50,3 +50,40 @@ This workflow is independent of the CI workflow (build + test on every push), wh
 - Artifact: `cricket-game-debug-2187f4e` (2,659,712 bytes)
 - Artifact expires: 2026-09-20
 - CI workflow also ran on same commit and passed (run ID: 32485422072)
+
+---
+
+## Platform Engineer Deployment Sign-off
+**Date:** 2026-08-21
+**Increment:** PIPELINE-002
+**Commit SHA:** 2187f4e94366a293e5f4a2668a0d09f0e15eb8a5
+**Environment:** GitHub Actions
+**Pipeline run ref:** 32485474639
+
+### Pipeline verification
+- [x] Pipeline triggered by correct commit SHA
+- [x] All stages passed (build → test → deploy)
+- [x] Artifact version matches commit SHA in release note
+- [x] No manual steps taken outside pipeline
+
+### PVT verification (via service start)
+- [x] N/A — this is infrastructure-only (APK build workflow), no service to start
+- [x] CI workflow (run 32485422072) also passed on same commit — PIPELINE-001 intact
+- [x] New PVT assertions added in this increment: no (pure infrastructure, no domain objects)
+
+### Observability verification
+- [x] N/A — no runtime service (build artifact only)
+
+### Artifact verification
+- [x] Artifact immutable post-build — `cricket-game-debug-2187f4e` (2,659,712 bytes)
+- [x] Provenance traceable to CI build — run 32485474639
+- [x] Previous version retained for rollback — 30-day retention, expires 2026-09-20
+
+### Rollback readiness
+- [x] Rollback procedure in release note
+- [x] Previous version artifact available (retained in workflow history)
+- [x] Rollback tested: not required (infrastructure workflow, not runtime)
+
+---
+**Status:** pe-deployment-approved
+**Notes:** All acceptance criteria verified via GitHub API. `workflow_dispatch` trigger confirmed on run 32485474639 (event: `workflow_dispatch`, conclusion: `success`). Artifact named `cricket-game-debug-2187f4e` contains commit SHA as required. CI workflow (PIPELINE-001) ran on same commit (run 32485422072, event: `push`, conclusion: `success`) — unchanged behaviour confirmed. No PVT assertions needed for this increment as it is pure build infrastructure with no domain objects or runtime service.

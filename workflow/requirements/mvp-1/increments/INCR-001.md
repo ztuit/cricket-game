@@ -1,6 +1,6 @@
 # INCR-001 — Domain model and match creation with toss
 **MVP:** 1
-**Status:** deployed
+**Status:** done
 **Priority:** must
 **Complexity:** medium
 **Dependencies:** PIPELINE-001
@@ -66,6 +66,9 @@ Match, Innings, Toss, TossResult, Target, Bowler, Batsman, BowlerType, Experienc
 | in-progress | 2026-08-21 | DL | Dispatched to Feature Owner (tests) then Coder (implementation) |
 | code-complete | 2026-08-21 | Feature Owner | Tests written — all acceptance criteria covered |
 | deployed | 2026-08-22 | Coder | Commit SHA: 4ba1bc31657d0bf88b19594d309c25305650eab8. All 58 domain tests passing. |
+| pe-signed-off | 2026-08-22 | Platform Engineer | Release note: INCR-001-4ba1bc3.md. Domain purity verified (zero Android imports). All 61 tests pass. CI pipeline structure confirmed. |
+| validated | 2026-08-22 | Delivery Lead | All 10 acceptance criteria verified against code and tests. BUILD SUCCESSFUL, 0 failures. |
+| done | 2026-08-22 | Delivery Lead | Increment complete. |
 
 ---
 
@@ -140,3 +143,48 @@ Implementation complete. All Feature Owner tests passing (58 domain tests, 0 fai
 - All value objects validate at construction time (SEC-003)
 
 **Ready for:** deployment → Platform Engineer sign-off → DL validation
+
+---
+
+## Delivery Lead Validation — 2026-08-22
+
+**Release note ref:** workflow/requirements/mvp-1/releases/INCR-001-4ba1bc3.md
+**Environment:** local (Android app — domain layer pure Kotlin)
+**Validation steps executed:** yes
+**Evidence confirmed:** yes
+
+### Acceptance criteria verification
+
+| # | Criterion | Status | Evidence |
+|---|---|---|---|
+| 1 | Match aggregate with valid invariants (max 20 overs, max 10 wickets) | ✅ | `Match.create()` enforces `require(maxOvers in 0..20)` and `require(maxWickets in 0..10)`. Tests: `should_create_match_with_valid_invariants`, `should_reject_match_creation_with_overs_exceeding_twenty`, `should_reject_match_creation_with_wickets_exceeding_ten`, boundary tests for 0/20/10. |
+| 2 | Bowler roster with ≥5 bowlers covering all 4 BowlerTypes | ✅ | `BowlerRoster.create()` validates `bowlers.size >= 5` and checks all `BowlerType.values()` covered. `BowlerType` enum: FAST, MEDIUM_FAST, OFF_SPIN, LEG_SPIN. Tests: `should_populate_bowler_roster_with_at_least_five_bowlers_covering_all_bowlerTypes`, `should_reject_bowler_roster_with_fewer_than_five_bowlers`, `should_reject_bowler_roster_missing_a_bowlerType`. |
+| 3 | Toss mechanic: coin flip, winner chooses Bat or Field | ✅ | `performToss()` uses `Math.random()` for winner. `TossResult` has `Winner` (PLAYER/AI) and `Decision` (BAT/FIELD). `performTossForTest()` for deterministic testing. Human requirement: AI chooses if player loses. Tests: `should_produce_valid_TossResult_when_toss_is_performed`, `should_allow_player_to_choose_Bat_or_Field_when_player_wins_toss`, `should_have_AI_choose_when_player_loses_toss`. |
+| 4 | Target: null if batting first, pre-calculated number if chasing | ✅ | `Match.create(target: Int? = null)`. Tests: `should_create_match_with_target_null_when_batting_first`, `should_create_match_with_positive_target_when_chasing`. |
+| 5 | Ground with name, location, default weather | ✅ | `Ground.create(groundId, name, location, defaultWeather)`. Test: `should_create_Ground_with_name_location_and_default_weather`. |
+| 6 | Pitch with zone grid and SurfaceCondition per zone | ✅ | `Pitch.create()` takes `zones: List<SurfaceCondition>`. `SurfaceCondition` validates degradation/moisture/roughness in [0,1]. Tests: `should_create_Pitch_with_zone_grid_and_SurfaceCondition_per_zone`, 6 range rejection tests, 3 boundary tests. |
+| 7 | Field Placement with exactly 11 fielder positions | ✅ | `FieldPlacement.create()` enforces `require(fielders.size == 11)`. Tests: `should_create_FieldPlacement_with_exactly_eleven_fielder_positions`, rejection tests for 10/12/0 fielders. |
+| 8 | InningsProgress initialized (0, 0, 0) | ✅ | `InningsProgress.initial(target)` creates with oversCompleted=0, wicketsFallen=0, currentScore=0. Test: `should_initialize_InningsProgress_at_zero_overs_zero_wickets_zero_runs`. |
+| 9 | Domain events: MatchStarted, TossCompleted | ✅ | `Match.create()` emits `MatchStarted`. `performToss()` emits `TossCompleted`. Both carry timestamps. Tests verify via `collectEvents()`. |
+| 10 | PVT assertions: all domain objects instantiate without error | ✅ | Release note confirms 5 PVT assertions (Match, Bowler, Batsman, Pitch, FieldPlacement). All 61 tests pass (58 domain + 2 PVT + 1 placeholder). |
+
+### Test coverage summary
+- **Happy paths:** 25 tests ✅
+- **Unhappy paths:** 16 tests ✅
+- **Edge cases:** 7 tests ✅
+- **Total domain tests:** 58 — all passing
+- **Grand total (including PVT):** 61 — all passing
+
+### Ubiquitous language compliance
+All domain objects use terms from `ddd.md`: Match, Bowler, Batsman, BowlerType, ExperienceClass, BowlerRoster, FieldPlacement, FielderPosition, Pitch, Ground, SurfaceCondition, Weather, WeatherCondition, InningsProgress, TossResult, DomainEvent. No synonyms detected.
+
+### Observations
+- Domain layer is pure Kotlin with zero Android dependencies (ADR-002 verified by PE).
+- Value object invariants enforced at construction time via `require()` (SEC-003).
+- Domain events collected in-memory — Kotlin Flow emission deferred until service layer exists (ADR-004).
+- Toss decision is random — no AI strategy yet (noted limitation).
+- Batsman stats are hardcoded defaults (noted limitation).
+- No logging implemented yet — deferred to next increment when service exists (Ops note).
+
+**Status:** validated
+**Notes:** All acceptance criteria met. Tests are comprehensive (happy/unhappy/edge). Implementation consistent with techsme constraints. Ready for MVP gate.

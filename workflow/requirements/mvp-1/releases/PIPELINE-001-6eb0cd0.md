@@ -51,3 +51,31 @@ _(CI pipeline ran and all stages passed)_
 - GitHub Actions run: https://github.com/ztuit/cricket-game/actions/runs/32456620183
 - All 14 steps passed (Set up job, Checkout, JDK 17, Cache, gradlew, SHA, gitleaks, Build, Test, Upload, Post-cache, Post-JDK, Post-checkout, Complete)
 - Build time: ~1 minute 40 seconds
+
+---
+
+## Platform Engineer Deployment Sign-off
+**Date:** 2026-08-21
+**Increment:** PIPELINE-001
+**Commit SHA:** 6eb0cd0f83eb8d9f6f83f0fca28d462062b3c57e
+**Environment:** CI (GitHub Actions)
+**Pipeline run ref:** https://github.com/ztuit/cricket-game/actions/runs/32456620183
+
+### Pipeline verification
+- [x] Pipeline triggered by correct commit SHA — `6eb0cd0` confirmed in workflow run
+- [x] All stages passed (checkout → JDK 17 → Gradle cache → gitleaks → build → test)
+- [x] Artifact version matches commit SHA in release note — `build-outputs-6eb0cd0` artifact produced
+- [x] No manual steps taken outside pipeline — fully automated on push
+
+### PVT verification
+- [x] Build succeeded — proof PVT passed (CI status: Success)
+- [x] Pipeline log shows clean run, no PVT failure messages
+- [x] New PVT assertions added: `BuildConfigurationPvtTest` with 2 assertions (build configuration namespace check, JUnit availability check)
+
+### Artifact verification
+- [x] Commit SHA in version name — `-PversionNameSuffix=6eb0cd0` passed to Gradle build
+- [x] Build outputs uploaded — `build-outputs-6eb0cd0` (4.75 MB) attached to workflow run
+
+---
+**Status:** pe-deployment-approved
+**Notes:** CI pipeline is fully operational. All stages pass cleanly. PVT assertions run as unit tests within `./gradlew test` — no separate step needed. Two minor deprecation warnings in GitHub Actions (Node.js 20 and setup-java v4) are non-blocking and can be addressed in a future housekeeping increment. Artifact provenance is traceable: commit SHA → workflow run → uploaded artifact.
