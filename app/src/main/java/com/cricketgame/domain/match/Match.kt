@@ -1,6 +1,7 @@
 package com.cricketgame.domain.match
 
-import com.cricketgame.domain.player.BowlerType
+import com.cricketgame.domain.delivery.Outcome
+import com.cricketgame.domain.delivery.OutcomeType
 
 /**
  * Match aggregate root.
@@ -13,7 +14,7 @@ import com.cricketgame.domain.player.BowlerType
  * - Each bowler bowls maximum 4 overs (standard T20 rules)
  * - Match ends when: all overs bowled, all wickets fallen, or target reached
  *
- * Orchestrates the toss and creates InningsProgress.
+ * Orchestrates the toss, tracks InningsProgress, and determines the match result.
  */
 class Match private constructor(
     val matchId: String,
@@ -24,6 +25,53 @@ class Match private constructor(
     val target: Int?
 ) {
     private val _events = mutableListOf<DomainEvent>()
+
+    /**
+     * Current state of the innings: runs, wickets, overs.
+     * Updated immutably after each delivery via processOutcome().
+     */
+    var inningsProgress: InningsProgress = InningsProgress.initial(target)
+        private set
+
+    /**
+     * Whether the match has ended. Once true, processOutcome() will reject further deliveries.
+     */
+    var isComplete: Boolean = false
+        private set
+
+    /**
+     * The match result, set when the match ends. Null until isComplete is true.
+     */
+    var result: MatchResult? = null
+        private set
+
+    /**
+     * Process a delivery outcome: update InningsProgress, check boundaries/wickets/overs/innings,
+     * and emit domain events.
+     *
+     * @throws IllegalStateException if the match is already complete
+     */
+    fun processOutcome(outcome: Outcome) {
+        check(!isComplete) { "Match $matchId is already complete — cannot process further outcomes" }
+
+        val previousProgress = inningsProgress
+        val newProgress = previousProgress.update(outcome)
+        inningsProgress = newProgress
+
+        // Emit scoring events based on outcome type
+        emitScoringEvents(outcome, newProgress)
+
+        // Check if over completed (ballsThisOver went from non-zero to 0)
+        if (newProgress.ballsThisOver == 0 && (previousProgress.ballsThisOver > 0 || outcome.isLegal)) {
+            // Over completed — the update() reset ballsThisOver to 0 and incremented oversCompleted
+            _events.add(DomainEvent.OverCompleted(overNumber = newProgress.oversCompleted - 1))
+        }
+
+        // Check innings end conditions
+        if (newProgress.isInningsComplete(maxOvers, maxWickets)) {
+            completeInnings(newProgress)
+        }
+    }
 
     /**
      * Perform the toss with a random winner.
@@ -47,6 +95,74 @@ class Match private constructor(
      * Used for testing and event forwarding (ADR-004).
      */
     fun collectEvents(): List<DomainEvent> = _events.toList()
+
+    private fun emitScoringEvents(outcome: Outcome, progress: InningsProgress) {
+        // Boundary detection: 4 or 6 runs scored via RUNS outcome
+        if (outcome.type == OutcomeType.RUNS && (outcome.runs == 4 || outcome.runs == 6)) {
+            _events.add(DomainEvent.BoundaryScored(runs = outcome.runs))
+        }
+
+        // Wicket event
+        if (outcome.type == OutcomeType.WICKET) {
+            _events.add(
+                DomainEvent.WicketFallen(
+                    wicketNumber = progress.wicketsFallen,
+                    dismissalType = outcome.dismissalType!!
+                )
+            )
+        }
+    }
+
+    private fun completeInnings(progress: InningsProgress) {
+        _events.add(
+            DomainEvent.InningsCompleted(
+                finalScore = progress.currentScore,
+                wicketsFallen = progress.wicketsFallen,
+                oversCompleted = progress.oversCompleted
+            )
+        )
+
+        // Determine match result
+        val matchResult = determineResult(progress)
+        result = matchResult
+        isComplete = true
+
+        // Target reached event (only when chasing and score exceeds target)
+        val t = progress.target
+        if (t != null && progress.currentScore > t) {
+            _events.add(
+                DomainEvent.TargetReached(
+                    finalScore = progress.currentScore,
+                    target = t,
+                    wicketsRemaining = maxWickets - progress.wicketsFallen
+                )
+            )
+        }
+
+        _events.add(
+            DomainEvent.MatchCompleted(
+                matchId = matchId,
+                result = matchResult,
+                finalScore = progress.currentScore
+            )
+        )
+    }
+
+    /**
+     * Determine the match result based on InningsProgress.
+     *
+     * - Win: score exceeds target (when chasing)
+     * - Loss: innings ends short of target (when chasing)
+     * - Draw: scores equal after all overs, or batting first (no target)
+     */
+    private fun determineResult(progress: InningsProgress): MatchResult {
+        val t = progress.target ?: return MatchResult.DRAW
+        return when {
+            progress.currentScore > t -> MatchResult.WIN
+            progress.currentScore < t -> MatchResult.LOSS
+            else -> MatchResult.DRAW
+        }
+    }
 
     private fun performTossInternal(winner: TossResult.Winner): TossResult {
         val decision = if (Math.random() < 0.5) TossResult.Decision.BAT else TossResult.Decision.FIELD

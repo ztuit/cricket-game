@@ -1,6 +1,7 @@
 package com.cricketgame.domain.match
 
 import com.cricketgame.domain.delivery.BallCharacteristics
+import com.cricketgame.domain.delivery.DismissalType
 import com.cricketgame.domain.delivery.Outcome
 import com.cricketgame.domain.delivery.ShotSelection
 
@@ -41,6 +42,44 @@ sealed class DomainEvent {
         val outcome: Outcome,
         val runsScored: Int,
         val isWicket: Boolean,
+        override val timestamp: Long = System.currentTimeMillis()
+    ) : DomainEvent()
+
+    // Scoring events (INCR-003)
+    data class BoundaryScored(
+        val runs: Int,
+        override val timestamp: Long = System.currentTimeMillis()
+    ) : DomainEvent()
+
+    data class WicketFallen(
+        val wicketNumber: Int,
+        val dismissalType: DismissalType,
+        override val timestamp: Long = System.currentTimeMillis()
+    ) : DomainEvent()
+
+    data class OverCompleted(
+        val overNumber: Int,
+        override val timestamp: Long = System.currentTimeMillis()
+    ) : DomainEvent()
+
+    data class InningsCompleted(
+        val finalScore: Int,
+        val wicketsFallen: Int,
+        val oversCompleted: Int,
+        override val timestamp: Long = System.currentTimeMillis()
+    ) : DomainEvent()
+
+    data class MatchCompleted(
+        val matchId: String,
+        val result: MatchResult,
+        val finalScore: Int,
+        override val timestamp: Long = System.currentTimeMillis()
+    ) : DomainEvent()
+
+    data class TargetReached(
+        val finalScore: Int,
+        val target: Int,
+        val wicketsRemaining: Int,
         override val timestamp: Long = System.currentTimeMillis()
     ) : DomainEvent()
 }
