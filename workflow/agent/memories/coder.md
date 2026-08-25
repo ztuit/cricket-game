@@ -56,3 +56,18 @@
 - No PVT startup hook exists yet (PIPELINE-004 not deployed) — PVT assertions verified via unit tests only
 **Impact:** Domain layer is pure Kotlin, no Android dependencies. All value objects validate at construction time (SEC-003). Ready for Delivery context to build on.
 **Status:** resolved
+
+## 2026-08-25 — INCR-003: Scoring and match state tracking
+**Type:** decision
+**Context:** Implementing scoring logic — InningsProgress updates, boundary detection, over completion, innings end conditions, match result determination.
+**What happened:**
+- InningsProgress.update() is a pure function returning a new data class copy() — immutable pattern
+- Match.processOutcome() validates match not complete, delegates to InningsProgress.update(), then checks for over/innings completion
+- Over completion detected by checking if ballsThisOver reset to 0 after update() (6 legal deliveries → over complete)
+- Innings end: 20 overs, 10 wickets, or target exceeded (when chasing)
+- MatchResult: WIN (score > target), LOSS (score < target), DRAW (equal or batting first)
+- 6 new domain events: BoundaryScored, WicketFallen, OverCompleted, InningsCompleted, MatchCompleted, TargetReached
+- All 22 ScoringTest cases pass
+- Batting-first match result defaults to DRAW (no simulated second innings in MVP 1)
+**Impact:** InningsProgress is the data source for the future scoreboard UI. Domain events enable structured logging (Ops) and analytics.
+**Status:** resolved
