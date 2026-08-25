@@ -1,6 +1,6 @@
 # INCR-003 — Scoring and match state tracking
 **MVP:** 1
-**Status:** open
+**Status:** deployed
 **Priority:** must
 **Complexity:** medium
 **Dependencies:** INCR-002
@@ -45,3 +45,26 @@ Runs, Wicket, Boundary, InningsProgress, Over, Delivery, Target, Outcome
 5. Run unit tests: Innings ends when 20 overs complete, 10 wickets fallen, or target reached
 6. Run unit tests: Match result is correct (Win when target exceeded, Loss when innings ends short)
 7. Run PVT assertions: InningsProgress enforces invariants
+
+---
+## Lifecycle tracking
+| Status | Date | Agent | Notes |
+|---|---|---|---|
+| proposed | 2026-08-24 | TPO | |
+| human-approved | 2026-08-24 | Human | |
+| in-progress | 2026-08-25 | DL | Dispatched to Feature Owner and Coder |
+| code-complete | 2026-08-25 | Coder | All 22 ScoringTest cases passing |
+| deployed | 2026-08-25 | Coder | Commit SHA: 03b13dceffd8eae58004953d40664c5e8d9e40c1 |
+
+---
+## Coder sign-off — 2026-08-25
+Implementation complete. All Feature Owner tests passing.
+Files changed:
+- `app/src/main/java/com/cricketgame/domain/match/InningsProgress.kt` — added `update(outcome)` pure function and `isInningsComplete()` check
+- `app/src/main/java/com/cricketgame/domain/match/Match.kt` — added `inningsProgress`, `isComplete`, `result`, `processOutcome()`, `determineResult()`
+- `app/src/main/java/com/cricketgame/domain/match/DomainEvent.kt` — added BoundaryScored, WicketFallen, OverCompleted, InningsCompleted, MatchCompleted, TargetReached
+- `app/src/main/java/com/cricketgame/domain/match/MatchResult.kt` — new enum: WIN, LOSS, DRAW
+- `app/src/test/java/com/cricketgame/domain/match/ScoringTest.kt` — Feature Owner tests (22 cases)
+PVT assertions added: InningsProgress invariants enforced at construction time (wicketsFallen <= 10, ballsThisOver <= 6, currentScore >= 0)
+Notable decisions: Over completion detected by checking ballsThisOver reset to 0 after update(); batting-first match result defaults to DRAW (no simulated second innings in MVP 1)
+Ready for: deployment → Platform Engineer sign-off → DL validation
